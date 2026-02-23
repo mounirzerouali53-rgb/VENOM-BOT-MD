@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>VENOM PAIR CODE</title>
+
+<style>
+body{
+background:#000;
+font-family:Arial;
+color:white;
+text-align:center;
+padding-top:100px;
+}
+
+h1{
+color:#8B0000;
+font-size:40px;
+text-shadow:0 0 20px red;
+}
+
+input{
+padding:15px;
+width:250px;
+border:none;
+background:#111;
+color:white;
+border-radius:5px;
+outline:none;
+}
+
+button{
+padding:15px;
+background:#8B0000;
+border:none;
+color:white;
+margin-top:10px;
+width:150px;
+cursor:pointer;
+border-radius:5px;
+box-shadow:0 0 20px red;
+}
+
+#code{
+margin-top:20px;
+font-size:30px;
+color:red;
+text-shadow:0 0 15px red;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>🕷️ VENOM BOT MD</h1>
+
+<input id="num" placeholder="Enter Number 2126XXXXXXX">
+
+<br><br>
+
+<button onclick="gen()">GENERATE</button>
+
+<div id="code"></div>
+
+<script>
+
+async function gen(){
+
+let n=document.getElementById("num").value
+
+let r=await fetch("/pair?number="+n)
+let d=await r.json()
+
+document.getElementById("code").innerHTML=d.code
+
+}
+
+</script>
+
+</body>
+</html>
