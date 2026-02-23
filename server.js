@@ -1,99 +1,106 @@
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
-const pino = require("pino");
-
+const express = require("express")
+const fs = require("fs")
+const path = require("path")
+const pino = require("pino")
 const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  fetchLatestBaileysVersion,
-  DisconnectReason
-} = require("@whiskeysockets/baileys");
+default: makeWASocket,
+useMultiFileAuthState,
+DisconnectReason,
+makeCacheableSignalKeyStore,
+delay
+} = require("@whiskeysockets/baileys")
 
-const app = express();
+const app = express()
+const PORT = process.env.PORT || 3000
 
-const sessionPath = path.join(__dirname, "session");
-if (!fs.existsSync(sessionPath)) {
-  fs.mkdirSync(sessionPath, { recursive: true });
+app.use(express.static("public"))
+
+let sock
+
+app.get("/pair", async (req,res)=>{
+
+let number = req.query.number
+
+if(!number) return res.json({status:false,msg:"رقم خاطئ"})
+
+number = number.replace(/[^0-9]/g,'')
+
+const { state, saveCreds } = await useMultiFileAuthState("./temp-session")
+
+sock = makeWASocket({
+logger:pino({level:"silent"}),
+printQRInTerminal:false,
+auth:{
+creds:state.creds,
+keys:makeCacheableSignalKeyStore(state.keys,pino({level:"fatal"}))
+}
+})
+
+sock.ev.on("creds.update",saveCreds)
+
+sock.ev.on("connection.update",async(update)=>{
+
+const {connection,lastDisconnect}=update
+
+// ✅ pairing code منين يكون ready
+if(connection==="connecting"){
+if(!state.creds.registered){
+
+setTimeout(async()=>{
+
+let code = await sock.requestPairingCode(number)
+code = code?.match(/.{1,4}/g)?.join("-") || code
+
+res.json({status:true,code:code})
+
+},3000)
+
+}
 }
 
-const OWNER_NUMBER = process.env.OWNER_NUMBER;
-if (!OWNER_NUMBER) throw new Error("OWNER_NUMBER not set");
+// ✅ منين تربط فالواتساب
+if(connection==="open"){
 
-let sock;
-let isConnected = false;
+let botNumber = sock.user.id.split(":")[0] + "@s.whatsapp.net"
 
-async function connectSocket() {
-  const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-  const { version } = await fetchLatestBaileysVersion();
+await delay(5000)
 
-  sock = makeWASocket({
-    logger: pino({ level: "silent" }),
-    auth: state,
-    browser: ["VENOM", "CHROME", "1.0.0"],
-    version
-  });
+// 📤 صيفط creds.json فالخاص
+let creds = fs.readFileSync("./temp-session/creds.json")
 
-  sock.ev.on("creds.update", saveCreds);
+await sock.sendMessage(botNumber,{
+document:creds,
+mimetype:"application/json",
+fileName:"creds.json",
+caption:"✔️ Session Connected"
+})
 
-  sock.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect } = update;
+// 🗑️ مسح session
+await delay(3000)
+fs.rmSync("./temp-session",{recursive:true,force:true})
 
-    if (connection === "close") {
-      const reason = lastDisconnect?.error?.output?.statusCode;
-      isConnected = false;
-
-      if (reason !== DisconnectReason.loggedOut) {
-        connectSocket();
-      }
-    }
-
-    if (connection === "open") {
-      isConnected = true;
-
-      const credsPath = path.join(sessionPath, "creds.json");
-
-      if (fs.existsSync(credsPath)) {
-        const buffer = fs.readFileSync(credsPath);
-
-        await sock.sendMessage(
-          OWNER_NUMBER + "@s.whatsapp.net",
-          {
-            document: buffer,
-            mimetype: "application/json",
-            fileName: "creds.json"
-          }
-        );
-      }
-    }
-  });
+process.exit(0)
 }
 
-connectSocket();
+if(connection==="close"){
+const reason=lastDisconnect?.error?.output?.statusCode
+if(reason===DisconnectReason.loggedOut){
+fs.rmSync("./temp-session",{recursive:true,force:true})
+process.exit()
+}
+}
 
-app.get("/pair", async (req, res) => {
-  const number = req.query.number;
-  if (!number) return res.send("Enter Number");
+})
 
-  if (!isConnected || !sock?.user) {
-    return res.send("Bot not ready");
-  }
+})
 
-  try {
-    let code = await sock.requestPairingCode(number);
-    code = code.match(/.{1,4}/g).join("-");
-    res.send(code);
-  } catch (e) {
-    res.send("Connection Error");
-  }
-});
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log("SERVER RUNNING");
-});
+app.listen(PORT,()=>{
+console.log(`
+==================================
+SERVER RUNNING
+==================================
+🌐 LINK:
+https://${process.env.RENDER_EXTERNAL_HOSTNAME}
+==================================
+`)
+})
