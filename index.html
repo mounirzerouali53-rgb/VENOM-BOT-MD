@@ -134,33 +134,25 @@ word-break:break-all;
 <button class="btn">📢 قناة الواتساب</button>
 </a>
 
-</div>
-
-<script>
-
 <script>
 async function gen(){
+ let n = document.getElementById("num").value
 
-let n = document.getElementById("number").value
+ let res = await fetch('/pair?number=' + n)
+ let data = await res.json()
 
-let res = await fetch('/pair?number=' + n)
-let data = await res.json()
-
-if(data.status){
-   document.getElementById("result").innerText = data.code
-}else{
-   document.getElementById("result").innerText = "فشل توليد الكود"
+ if(data.status){
+   document.getElementById("code").innerText = data.code
+ }else{
+   document.getElementById("code").innerText = "فشل توليد الكود ❌"
+ }
 }
 
-}
-</script>
-</script>
 function copyCode(){
-let code=document.getElementById("code").innerText
-navigator.clipboard.writeText(code)
-alert("تم النسخ ✅")
+ let code = document.getElementById("code").innerText
+ navigator.clipboard.writeText(code)
+ alert("تم النسخ ✅")
 }
 </script>
-
 </body>
 </html>
