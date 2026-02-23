@@ -138,18 +138,22 @@ word-break:break-all;
 
 <script>
 
+<script>
 async function gen(){
 
-let n=document.getElementById("num").value
+let n = document.getElementById("number").value
 
-document.getElementById("code").innerHTML="⏳ جاري التوليد..."
+let res = await fetch('/pair?number=' + n)
+let data = await res.json()
 
-let r=await fetch("/pair?number="+n)
-let d=await r.text()
-
-document.getElementById("code").innerHTML=d
+if(data.status){
+   document.getElementById("result").innerText = data.code
+}else{
+   document.getElementById("result").innerText = "فشل توليد الكود"
+}
 
 }
+</script>
 
 function copyCode(){
 let code=document.getElementById("code").innerText
