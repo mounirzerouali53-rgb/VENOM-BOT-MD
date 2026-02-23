@@ -1,106 +1,125 @@
 const express = require("express")
 const fs = require("fs")
-const path = require("path")
 const pino = require("pino")
+const path = require("path")
+
 const {
 default: makeWASocket,
 useMultiFileAuthState,
-DisconnectReason,
-makeCacheableSignalKeyStore,
-delay
+fetchLatestBaileysVersion,
+DisconnectReason
 } = require("@whiskeysockets/baileys")
 
 const app = express()
-const PORT = process.env.PORT || 3000
 
-app.use(express.static("public"))
+const sessionPath = "./session"
+
+if (!fs.existsSync(sessionPath)){
+fs.mkdirSync(sessionPath,{recursive:true})
+}
 
 let sock
+let botReady = false
 
-app.get("/pair", async (req,res)=>{
+async function startBot(){
 
-let number = req.query.number
-
-if(!number) return res.json({status:false,msg:"رقم خاطئ"})
-
-number = number.replace(/[^0-9]/g,'')
-
-const { state, saveCreds } = await useMultiFileAuthState("./temp-session")
+const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
+const { version } = await fetchLatestBaileysVersion()
 
 sock = makeWASocket({
 logger:pino({level:"silent"}),
-printQRInTerminal:false,
-auth:{
-creds:state.creds,
-keys:makeCacheableSignalKeyStore(state.keys,pino({level:"fatal"}))
-}
+auth:state,
+browser:["VENOM","CHROME","1.0.0"],
+version,
+markOnlineOnConnect:true
 })
 
-sock.ev.on("creds.update",saveCreds)
+sock.ev.on("creds.update", saveCreds)
 
-sock.ev.on("connection.update",async(update)=>{
+sock.ev.on("connection.update", async(update)=>{
 
-const {connection,lastDisconnect}=update
+const { connection, lastDisconnect } = update
 
-// ✅ pairing code منين يكون ready
-if(connection==="connecting"){
-if(!state.creds.registered){
+if(connection === "open"){
+
+botReady = true
+console.log("✅ BOT CONNECTED")
+
+const botNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net'
 
 setTimeout(async()=>{
 
-let code = await sock.requestPairingCode(number)
-code = code?.match(/.{1,4}/g)?.join("-") || code
+try{
 
-res.json({status:true,code:code})
+await sock.sendMessage(botNumber,{
+document: fs.readFileSync("./session/creds.json"),
+mimetype: 'application/json',
+fileName: "creds.json"
+})
+
+console.log("📁 creds.json sent to private")
+
+}catch(e){
+console.log("Send creds error",e)
+}
 
 },3000)
 
 }
+
+if(connection === "close"){
+
+botReady = false
+
+const reason = lastDisconnect?.error?.output?.statusCode
+
+if(reason !== DisconnectReason.loggedOut){
+startBot()
 }
 
-// ✅ منين تربط فالواتساب
-if(connection==="open"){
-
-let botNumber = sock.user.id.split(":")[0] + "@s.whatsapp.net"
-
-await delay(5000)
-
-// 📤 صيفط creds.json فالخاص
-let creds = fs.readFileSync("./temp-session/creds.json")
-
-await sock.sendMessage(botNumber,{
-document:creds,
-mimetype:"application/json",
-fileName:"creds.json",
-caption:"✔️ Session Connected"
-})
-
-// 🗑️ مسح session
-await delay(3000)
-fs.rmSync("./temp-session",{recursive:true,force:true})
-
-process.exit(0)
-}
-
-if(connection==="close"){
-const reason=lastDisconnect?.error?.output?.statusCode
-if(reason===DisconnectReason.loggedOut){
-fs.rmSync("./temp-session",{recursive:true,force:true})
-process.exit()
-}
 }
 
 })
 
+}
+
+startBot()
+
+// 🔥 pairing route
+app.get("/pair", async(req,res)=>{
+
+let number = req.query.number
+
+if(!number) return res.json({status:false,msg:"Enter Number"})
+
+if(!sock || !sock.authState.creds.registered){
+
+try{
+
+let code = await sock.requestPairingCode(number)
+code = code.match(/.{1,4}/g).join("-")
+
+return res.json({status:true,code})
+
+}catch(e){
+return res.json({status:false,msg:"Bot Not Ready"})
+}
+
+}
+
+res.json({status:false,msg:"Already Connected"})
+
 })
+
+// 🔥 واجهة الموقع
+app.get("/",(req,res)=>{
+res.sendFile(path.join(__dirname + "/public/index.html"))
+})
+
+app.use(express.static("public"))
+
+const PORT = process.env.PORT || 3000
 
 app.listen(PORT,()=>{
-console.log(`
-==================================
-SERVER RUNNING
-==================================
-🌐 LINK:
-https://${process.env.RENDER_EXTERNAL_HOSTNAME}
-==================================
-`)
+console.log("🌐 SERVER RUNNING")
 })
