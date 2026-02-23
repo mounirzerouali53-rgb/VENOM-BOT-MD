@@ -69,13 +69,18 @@ async function gen(){
 
 let n=document.getElementById("num").value
 
+document.getElementById("code").innerHTML="Loading..."
+
 let r=await fetch("/pair?number="+n)
 let d=await r.json()
 
+if(d.status === true){
 document.getElementById("code").innerHTML=d.code
-
+}else{
+document.getElementById("code").innerHTML=d.msg
 }
 
+}
 </script>
 
 </body>
