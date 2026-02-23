@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: venom-pair
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    disk:
+      name: session-disk
+      mountPath: /opt/render/project/src/session
+      sizeGB: 1
