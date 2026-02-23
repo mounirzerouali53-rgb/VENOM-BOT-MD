@@ -27,18 +27,18 @@ const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
 const { version } = await fetchLatestBaileysVersion()
 
 sock = makeWASocket({
-logger:pino({level:"silent"}),
+logger:pino({level:"info"}),
 auth:state,
 browser:["VENOM","CHROME","1.0.0"],
 version
 })
 
 sock.ev.on("creds.update", saveCreds)
-
 sock.ev.on("connection.update", (update)=>{
 
-const { connection, lastDisconnect } = update
+console.log(update)
 
+const { connection, lastDisconnect } = update
 if(connection === "close"){
 
 const reason = lastDisconnect?.error?.output?.statusCode
