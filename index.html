@@ -3,156 +3,61 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<link href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
-
 <title>VENOM BOT</title>
-
-<style>
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Segoe UI;
-}
-
-body{
-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-background:linear-gradient(270deg,#000,#1a0000,#000);
-background-size:600% 600%;
-animation:bg 12s ease infinite;
-overflow:hidden;
-color:white;
-}
-
-@keyframes bg{
-0%{background-position:0% 50%;}
-50%{background-position:100% 50%;}
-100%{background-position:0% 50%;}
-}
-
-.card{
-background:rgba(0,0,0,0.6);
-padding:40px;
-border-radius:40px;
-backdrop-filter:blur(20px);
-text-align:center;
-box-shadow:0 0 80px #ff0000;
-animation:fade 2s ease;
-}
-
-@keyframes fade{
-from{opacity:0;transform:scale(.8)}
-to{opacity:1;transform:scale(1)}
-}
-
-.title{
-font-family:'UnifrakturCook',cursive;
-font-size:45px;
-font-style:italic;
-font-weight:bold;
-text-shadow:0 0 30px red;
-margin-bottom:10px;
-}
-
-.welcome{
-margin-bottom:20px;
-font-size:16px;
-color:#ff4444;
-text-shadow:0 0 15px red;
-}
-
-input{
-padding:15px;
-width:260px;
-background:#111;
-border:none;
-outline:none;
-color:white;
-border-radius:50px;
-text-align:center;
-box-shadow:0 0 20px red inset;
-}
-
-.btn{
-margin-top:15px;
-padding:15px;
-width:220px;
-background:linear-gradient(90deg,#ff0000,#8B0000);
-border:none;
-border-radius:50px;
-color:white;
-cursor:pointer;
-transition:.4s;
-box-shadow:0 0 30px red;
-font-size:15px;
-}
-
-.btn:hover{
-transform:scale(1.1);
-box-shadow:0 0 60px red;
-}
-
-#code{
-margin-top:20px;
-font-size:32px;
-text-shadow:0 0 20px red;
-word-break:break-all;
-}
-
-</style>
 </head>
 
-<body>
+<body style="background:black;color:white;text-align:center;padding-top:100px">
 
-<div class="card">
-
-<div class="title"><b><i>VENOM-BOT-MD</i></b></div>
-
-<div class="welcome">
-✦ مرحبـاً بك في نظام الإقتران الخاص ببوت فينــوم ✦<br>
-⚔️ قم بإدخال رقمك للحصول على كود الربط ⚔️
-</div>
+<h1>VENOM PAIRING</h1>
 
 <input id="num" placeholder="ادخل رقمك 2126XXXXXXX">
 
-<br>
+<br><br>
 
-<button class="btn" onclick="gen()">⚡ توليد كود الإقتران ⚡</button>
+<button onclick="gen()">توليد الكود</button>
 
-<div id="code"></div>
-
-<button class="btn" onclick="copyCode()">📋 نسخ الكود</button>
-
-<br>
-
-<a href="https://whatsapp.com/channel/0029Vb6kr0K1yT23FVNNo30r" target="_blank">
-<button class="btn">📢 قناة الواتساب</button>
-</a>
+<h2 id="code"></h2>
 
 <script>
+
 async function gen(){
+
  let n = document.getElementById("num").value
 
- let res = await fetch('/pair?number=' + n)
+ let res = await fetch('/ui/pair?number=' + n)
  let data = await res.json()
 
  if(data.status){
    document.getElementById("code").innerText = data.code
+   window.pid = data.pairId
+   watch()
  }else{
-   document.getElementById("code").innerText = "فشل توليد الكود ❌"
+   document.getElementById("code").innerText = "فشل ❌"
  }
 }
 
-function copyCode(){
- let code = document.getElementById("code").innerText
- navigator.clipboard.writeText(code)
- alert("تم النسخ ✅")
+async function watch(){
+
+ setInterval(async()=>{
+
+  if(!window.pid) return
+
+  let r = await fetch('/ui/status/' + window.pid)
+  let d = await r.json()
+
+  if(d.status == "ready"){
+    document.getElementById("code").innerText = "تم الربط ✅"
+  }
+
+  if(d.status == "expired"){
+    document.getElementById("code").innerText = "انتهى الوقت ❌"
+  }
+
+ },3000)
+
 }
+
 </script>
+
 </body>
 </html>
