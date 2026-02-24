@@ -1,125 +1,132 @@
-const express = require("express")
-const fs = require("fs")
-const pino = require("pino")
-const path = require("path")
+const express = require('express');
+const cors = require('cors');
+const { nanoid } = require('nanoid');
+const fs = require('fs');
+const path = require('path');
 
-const {
-default: makeWASocket,
-useMultiFileAuthState,
-fetchLatestBaileysVersion,
-DisconnectReason
-} = require("@whiskeysockets/baileys")
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
 
-const app = express()
+const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
 
-const sessionPath = "./session"
-
-if (!fs.existsSync(sessionPath)){
-fs.mkdirSync(sessionPath,{recursive:true})
+let sessions = {};
+try {
+  if (fs.existsSync(SESSIONS_FILE)) {
+    sessions = JSON.parse(fs.readFileSync(SESSIONS_FILE));
+  }
+} catch (e) {
+  sessions = {};
 }
 
-let sock
-let botReady = false
-
-async function startBot(){
-
-const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
-const { version } = await fetchLatestBaileysVersion()
-
-sock = makeWASocket({
-logger:pino({level:"silent"}),
-auth:state,
-browser:["VENOM","CHROME","1.0.0"],
-version,
-markOnlineOnConnect:true
-})
-
-sock.ev.on("creds.update", saveCreds)
-
-sock.ev.on("connection.update", async(update)=>{
-
-const { connection, lastDisconnect } = update
-
-if(connection === "open"){
-
-botReady = true
-console.log("✅ BOT CONNECTED")
-
-const botNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net'
-
-setTimeout(async()=>{
-
-try{
-
-await sock.sendMessage(botNumber,{
-document: fs.readFileSync("./session/creds.json"),
-mimetype: 'application/json',
-fileName: "creds.json"
-})
-
-console.log("📁 creds.json sent to private")
-
-}catch(e){
-console.log("Send creds error",e)
+function saveSessions() {
+  fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2));
 }
 
-},3000)
-
+// نفس منطقك
+function generatePairCode(pairId){
+  return "DAMON123-" + pairId.slice(0,3);
 }
 
-if(connection === "close"){
+// ================== API الأصلي ==================
 
-botReady = false
+app.get('/pair', (req, res) => {
 
-const reason = lastDisconnect?.error?.output?.statusCode
+  const pairId = nanoid(8);
+  const code = generatePairCode(pairId);
+  const sessionName = '𝐃𝐀𝐌𝐎𝐍';
+  const createdAt = new Date().toISOString();
 
-if(reason !== DisconnectReason.loggedOut){
-startBot()
-}
+  const entry = {
+    pairId,
+    code,
+    sessionName,
+    createdAt,
+    status: 'pending',
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+  };
 
-}
+  sessions[pairId] = entry;
+  saveSessions();
 
-})
+  res.json(entry);
+});
 
-}
+app.get('/pair/:pairId', (req, res) => {
 
-startBot()
+  const entry = sessions[req.params.pairId];
+  if (!entry) return res.status(404).json({ error: 'not found' });
 
-// 🔥 pairing route
-app.get("/pair", async(req,res)=>{
+  if (new Date(entry.expiresAt) < new Date() && entry.status === 'pending') {
+    entry.status = 'expired';
+    saveSessions();
+  }
 
-let number = req.query.number
+  res.json(entry);
+});
 
-if(!number) return res.json({status:false,msg:"Enter Number"})
+app.post('/pair/confirm', (req, res) => {
 
-if(!sock || !sock.authState.creds.registered){
+  const { pairId, code } = req.body || {};
+  if (!pairId || !code)
+    return res.status(400).json({ error: 'required' });
 
-try{
+  const entry = sessions[pairId];
+  if (!entry) return res.status(404).json({ error: 'not found' });
 
-let code = await sock.requestPairingCode(number)
-code = code.match(/.{1,4}/g).join("-")
+  if (entry.code !== code)
+    return res.status(400).json({ error: 'invalid' });
 
-return res.json({status:true,code})
+  entry.status = 'ready';
+  entry.confirmedAt = new Date().toISOString();
+  saveSessions();
 
-}catch(e){
-return res.json({status:false,msg:"Bot Not Ready"})
-}
+  res.json({ success: true, entry });
+});
 
-}
+// ================== Bridge للواجهة ==================
 
-res.json({status:false,msg:"Already Connected"})
+app.get('/ui/pair', (req, res) => {
 
-})
+  const number = req.query.number;
+  if(!number) return res.json({status:false});
 
-// 🔥 واجهة الموقع
-app.get("/",(req,res)=>{
-res.sendFile(path.join(__dirname + "/index.html"))
-})
+  const pairId = nanoid(8);
+  const code = generatePairCode(pairId);
+  const createdAt = new Date().toISOString();
 
-app.use(express.static("public"))
+  const entry = {
+    pairId,
+    number,
+    code,
+    sessionName:'𝐃𝐀𝐌𝐎𝐍',
+    createdAt,
+    status:'pending',
+    expiresAt:new Date(Date.now()+5*60*1000).toISOString()
+  };
 
-const PORT = process.env.PORT || 3000
+  sessions[pairId] = entry;
+  saveSessions();
 
-app.listen(PORT,()=>{
-console.log("🌐 SERVER RUNNING")
-})
+  res.json({
+    status:true,
+    pairId:pairId,
+    code:code
+  });
+});
+
+app.get('/ui/status/:pairId',(req,res)=>{
+
+  const entry = sessions[req.params.pairId];
+  if(!entry) return res.json({status:false});
+
+  res.json({status:entry.status});
+});
+
+// ==================
+
+app.get('/', (req,res)=>res.send("VENOM Pairing Running"));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, ()=>console.log("Server running on "+PORT));
