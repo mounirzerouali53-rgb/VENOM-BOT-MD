@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VENOM BOT</title>
+</head>
+
+<body style="background:black;color:white;text-align:center;padding-top:100px">
+
+<h1>VENOM PAIRING</h1>
+
+<input id="num" placeholder="ادخل رقمك 2126XXXXXXX">
+
+<br><br>
+
+<button onclick="gen()">توليد الكود</button>
+
+<h2 id="code"></h2>
+
+<script>
+
+async function gen(){
+
+ let n = document.getElementById("num").value
+
+ let res = await fetch('/ui/pair?number=' + n)
+ let data = await res.json()
+
+ if(data.status){
+   document.getElementById("code").innerText = data.code
+   window.pid = data.pairId
+   watch()
+ }else{
+   document.getElementById("code").innerText = "فشل ❌"
+ }
+}
+
+async function watch(){
+
+ setInterval(async()=>{
+
+  if(!window.pid) return
+
+  let r = await fetch('/ui/status/' + window.pid)
+  let d = await r.json()
+
+  if(d.status == "ready"){
+    document.getElementById("code").innerText = "تم الربط ✅"
+  }
+
+  if(d.status == "expired"){
+    document.getElementById("code").innerText = "انتهى الوقت ❌"
+  }
+
+ },3000)
+
+}
+
+</script>
+
+</body>
+</html>
