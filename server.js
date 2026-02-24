@@ -26,9 +26,8 @@ function saveSessions() {
 
 // نفس منطقك
 function generatePairCode(pairId){
-  return "DAMON123-" + pairId.slice(0,3);
+  return "DAMON123"; // ثابت دائما
 }
-
 // ================== API الأصلي ==================
 
 app.get('/pair', (req, res) => {
