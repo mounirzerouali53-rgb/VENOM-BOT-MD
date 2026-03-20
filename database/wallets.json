@@ -1,0 +1,70 @@
+{
+  "users": {
+    "39110727229660@lid": {
+      "diamonds": 0,
+      "gold": 0,
+      "silver": 0,
+      "bronze": 0,
+      "cash": 0,
+      "bank": 0,
+      "crypto": 0,
+      "rank": "مبتدئ",
+      "cps": 1.000000000001e+21
+    },
+    "254898255986890@lid": {
+      "diamonds": 200000,
+      "gold": 760000,
+      "silver": 0,
+      "bronze": 0,
+      "cash": 0,
+      "bank": 0,
+      "crypto": 0,
+      "rank": "مبتدئ",
+      "cps": 20479313500
+    },
+    "40094207635551@lid": {
+      "diamonds": 2000,
+      "gold": 760000,
+      "silver": 0,
+      "bronze": 0,
+      "cash": 0,
+      "bank": 0,
+      "crypto": 0,
+      "rank": "مبتدئ",
+      "cps": 250000000
+    },
+    "2921198551200@lid": {
+      "diamonds": 0,
+      "gold": 0,
+      "silver": 0,
+      "bronze": 0,
+      "cash": 0,
+      "bank": 0,
+      "crypto": 0,
+      "rank": "مبتدئ",
+      "cps": 240000000
+    },
+    "248941153104072@lid": {
+      "diamonds": 0,
+      "gold": 0,
+      "silver": 0,
+      "bronze": 0,
+      "cash": 0,
+      "bank": 0,
+      "crypto": 0,
+      "rank": "مبتدئ",
+      "cps": 6108473
+    },
+    "118026322051103@lid": {
+      "diamonds": 0,
+      "gold": 0,
+      "silver": 0,
+      "bronze": 0,
+      "cash": 0,
+      "bank": 0,
+      "crypto": 0,
+      "rank": "مبتدئ",
+      "cps": 1999000
+    }
+  }
+}
