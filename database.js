@@ -1,178 +1,141 @@
-/**
- * Simple JSON-based Database for Group Settings
- */
-
 const fs = require('fs');
+
 const path = require('path');
-const config = require('./config');
 
-const DB_PATH = path.join(__dirname, 'database');
-const GROUPS_DB = path.join(DB_PATH, 'groups.json');
-const USERS_DB = path.join(DB_PATH, 'users.json');
-const WARNINGS_DB = path.join(DB_PATH, 'warnings.json');
-const MODS_DB = path.join(DB_PATH, 'mods.json');
+const dbPath = path.join(__dirname, '../database/wallets.json');
 
-// Initialize database directory
-if (!fs.existsSync(DB_PATH)) {
-  fs.mkdirSync(DB_PATH, { recursive: true });
+function loadDB() {
+
+    try {
+
+        if (!fs.existsSync(dbPath)) {
+
+            const initialData = { users: {} };
+
+            fs.writeFileSync(dbPath, JSON.stringify(initialData, null, 2));
+
+            return initialData;
+
+        }
+
+        return JSON.parse(fs.readFileSync(dbPath));
+
+    } catch (error) {
+
+        console.error('خطأ في تحميل قاعدة البيانات:', error);
+
+        return { users: {} };
+
+    }
+
 }
 
-// Initialize database files
-const initDB = (filePath, defaultData = {}) => {
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2));
-  }
-};
+function saveDB(data) {
 
-initDB(GROUPS_DB, {});
-initDB(USERS_DB, {});
-initDB(WARNINGS_DB, {});
-initDB(MODS_DB, { moderators: [] });
+    try {
 
-// Read database
-const readDB = (filePath) => {
-  try {
-    const data = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error(`Error reading database: ${error.message}`);
-    return {};
-  }
-};
+        fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
 
-// Write database
-const writeDB = (filePath, data) => {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-    return true;
-  } catch (error) {
-    console.error(`Error writing database: ${error.message}`);
-    return false;
-  }
-};
+    } catch (error) {
 
-// Group Settings
-const getGroupSettings = (groupId) => {
-  const groups = readDB(GROUPS_DB);
-  if (!groups[groupId]) {
-    groups[groupId] = { ...config.defaultGroupSettings };
-    writeDB(GROUPS_DB, groups);
-  }
-  return groups[groupId];
-};
+        console.error('خطأ في حفظ قاعدة البيانات:', error);
 
-const updateGroupSettings = (groupId, settings) => {
-  const groups = readDB(GROUPS_DB);
-  groups[groupId] = { ...groups[groupId], ...settings };
-  return writeDB(GROUPS_DB, groups);
-};
+    }
 
-// User Data
-const getUser = (userId) => {
-  const users = readDB(USERS_DB);
-  if (!users[userId]) {
-    users[userId] = {
-      registered: Date.now(),
-      premium: false,
-      banned: false
-    };
-    writeDB(USERS_DB, users);
-  }
-  return users[userId];
-};
+}
 
-const updateUser = (userId, data) => {
-  const users = readDB(USERS_DB);
-  users[userId] = { ...users[userId], ...data };
-  return writeDB(USERS_DB, users);
-};
+function getUserData(db, userId) {
 
-// Warnings System
-const getWarnings = (groupId, userId) => {
-  const warnings = readDB(WARNINGS_DB);
-  const key = `${groupId}_${userId}`;
-  return warnings[key] || { count: 0, warnings: [] };
-};
+    try {
 
-const addWarning = (groupId, userId, reason) => {
-  const warnings = readDB(WARNINGS_DB);
-  const key = `${groupId}_${userId}`;
-  
-  if (!warnings[key]) {
-    warnings[key] = { count: 0, warnings: [] };
-  }
-  
-  warnings[key].count++;
-  warnings[key].warnings.push({
-    reason,
-    date: Date.now()
-  });
-  
-  writeDB(WARNINGS_DB, warnings);
-  return warnings[key];
-};
+        // التحقق من صحة userId
 
-const removeWarning = (groupId, userId) => {
-  const warnings = readDB(WARNINGS_DB);
-  const key = `${groupId}_${userId}`;
-  
-  if (warnings[key] && warnings[key].count > 0) {
-    warnings[key].count--;
-    warnings[key].warnings.pop();
-    writeDB(WARNINGS_DB, warnings);
-    return true;
-  }
-  return false;
-};
+        if (!userId) {
 
-const clearWarnings = (groupId, userId) => {
-  const warnings = readDB(WARNINGS_DB);
-  const key = `${groupId}_${userId}`;
-  delete warnings[key];
-  return writeDB(WARNINGS_DB, warnings);
-};
+            console.error('userId غير معرف');
 
-// Moderators System
-const getModerators = () => {
-  const mods = readDB(MODS_DB);
-  return mods.moderators || [];
-};
+            return {
 
-const addModerator = (userId) => {
-  const mods = readDB(MODS_DB);
-  if (!mods.moderators) mods.moderators = [];
-  if (!mods.moderators.includes(userId)) {
-    mods.moderators.push(userId);
-    return writeDB(MODS_DB, mods);
-  }
-  return false;
-};
+                diamonds: 0,
 
-const removeModerator = (userId) => {
-  const mods = readDB(MODS_DB);
-  if (mods.moderators) {
-    mods.moderators = mods.moderators.filter(id => id !== userId);
-    return writeDB(MODS_DB, mods);
-  }
-  return false;
-};
+                gold: 0,
 
-const isModerator = (userId) => {
-  const mods = getModerators();
-  return mods.includes(userId);
-};
+                silver: 0,
 
-module.exports = {
-  getGroupSettings,
-  updateGroupSettings,
-  getUser,
-  updateUser,
-  getWarnings,
-  addWarning,
-  removeWarning,
-  clearWarnings,
-  getModerators,
-  addModerator,
-  removeModerator,
-  isModerator
-};
+                bronze: 0,
+
+                cash: 0,
+
+                bank: 0,
+
+                crypto: 0,
+
+                rank: "مبتدئ"
+
+            };
+
+        }
+
+        // تنظيف الـ userId من أي بيانات زائدة
+
+        const cleanUserId = userId.split(':')[0]; // إزالة أي جزء بعد :
+
+        
+
+        // التأكد من وجود المستخدم
+
+        if (!db.users[cleanUserId]) {
+
+            db.users[cleanUserId] = {
+
+                diamonds: 0,
+
+                gold: 0,
+
+                silver: 0,
+
+                bronze: 0,
+
+                cash: 0,
+
+                bank: 0,
+
+                crypto: 0,
+
+                rank: "مبتدئ"
+
+            };
+
+        }
+
+        return db.users[cleanUserId];
+
+    } catch (error) {
+
+        console.error('خطأ في getUserData:', error);
+
+        return {
+
+            diamonds: 0,
+
+            gold: 0,
+
+            silver: 0,
+
+            bronze: 0,
+
+            cash: 0,
+
+            bank: 0,
+
+            crypto: 0,
+
+            rank: "مبتدئ"
+
+        };
+
+    }
+
+}
+
+module.exports = { loadDB, saveDB, getUserData };
