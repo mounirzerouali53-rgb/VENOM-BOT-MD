@@ -123,6 +123,19 @@ const zlib = require('zlib');
 const os = require('os');
 
 const readline = require('readline');
+// --- كود الحفاظ على استيقاظ البوت لـ Render و Cron-job ---
+const http = require('http');
+const PORT_FOR_RENDER = process.env.PORT || 10000; 
+
+http.createServer((req, res) => {
+  res.writeHead(200, {'Content-Type': 'text/plain'});
+  res.write("VENOM BOT IS ALIVE AND RUNNING!");
+  res.end();
+}).listen(PORT_FOR_RENDER, () => {
+  console.log(`✅ Web Server started on port ${PORT_FOR_RENDER} for Render Uptime.`);
+});
+// ---------------------------------------------------------
+
 
 // Remove Puppeteer cache (if some dependency downloaded Chromium into ~/.cache/puppeteer)
 
