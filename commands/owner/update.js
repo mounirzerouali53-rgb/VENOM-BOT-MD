@@ -140,7 +140,7 @@ async function updateViaZip(zipUrl) {
 }
 
 module.exports = {
-  name: 'update',
+  name: 'تحديث',
   aliases: ['upgrade'],
   category: 'owner',
   description: 'تحديث البوت من رابط ZIP (للمالك فقط)',
