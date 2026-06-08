@@ -5,7 +5,7 @@
 
 module.exports = {
     // Bot Owner Configuration
-    ownerNumber: [''],
+    ownerNumber: ['212723302406'],
     ownerName: ['𝄞☯︎D̷O̷N̷♛V̸E̸N̸O̸M̸➼𝄞'],
     
     // Bot Configuration
@@ -14,7 +14,7 @@ module.exports = {
     sessionName: 'session',
     sessionID: process.env.SESSION_ID || '',
     newsletterJid: '120363422273008761@newsletter',
-    updateZipUrl: 'https://github.com/mruniquehacker/KnightBot-Mini/archive/refs/heads/main.zip',
+    updateZipUrl: 'https://github.com/mounirzerouali53-rgb/VENOM-BOT-MD/archive/refs/heads/main.zip',
     
     // Sticker Configuration
     packname: '𝄞☯︎D̷O̷N̷♛V̸E̸N̸O̸M̸➼𝄞',
