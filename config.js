@@ -5,11 +5,11 @@
 
 module.exports = {
     // Bot Owner Configuration
-    ownerNumber: ['212787536523'],
-    ownerName: ['𝐇𝐀𝐌𝐙𝐀 𝐋𝐊𝐇𝐀𝐓𝐈𝐁𝐄'],
+    ownerNumber: [''],
+    ownerName: ['𝄞☯︎D̷O̷N̷♛V̸E̸N̸O̸M̸➼𝄞'],
     
     // Bot Configuration
-    botName: '𝐇𝐀𝐌𝐙𝐀 𝐋𝐊𝐇𝐀𝐓𝐈𝐁𝐄',
+    botName: '𝄞☯︎D̷O̷N̷♛V̸E̸N̸O̸M̸➼𝄞',
     prefix: '.',
     sessionName: 'session',
     sessionID: process.env.SESSION_ID || '',
@@ -17,7 +17,7 @@ module.exports = {
     updateZipUrl: 'https://github.com/mruniquehacker/KnightBot-Mini/archive/refs/heads/main.zip',
     
     // Sticker Configuration
-    packname: '𝐇𝐀𝐌𝐙𝐀 𝐋𝐊𝐇𝐀𝐓𝐈𝐁𝐄',
+    packname: '𝄞☯︎D̷O̷N̷♛V̸E̸N̸O̸M̸➼𝄞',
     
     // Bot Behavior
     selfMode: false,
@@ -43,7 +43,7 @@ module.exports = {
       antigroupmention: false,
       antigroupmentionAction: 'delete',
       welcome: false,
-      welcomeMessage: '╭━━━𓆗👁️𓆗━━━╮\n┃ 🖤 عضو جديد في الظل\n┃ ✨ مرحباً: @user\n┃ 👥 الأعضاء: #memberCount\n┃ ⏰ الوقت: time\n╰━━━𓆗👁️𓆗━━━╯\n\n*@user* أهلاً بك في *@group*\n\n*📋 وصف الجروب:*\ngroupDesc\n\n> *𝐇𝐀𝐌𝐙𝐀 𝐋𝐊𝐇𝐀𝐓𝐈𝐁𝐄*',
+      welcomeMessage: '╭━━━𓆗👁️𓆗━━━╮\n┃ 🖤 عضو جديد في الظل\n┃ ✨ مرحباً: @user\n┃ 👥 الأعضاء: #memberCount\n┃ ⏰ الوقت: time\n╰━━━𓆗👁️𓆗━━━╯\n\n*@user* أهلاً بك في *@group*\n\n*📋 وصف الجروب:*\ngroupDesc\n\n> *𝄞☯︎D̷O̷N̷♛V̸E̸N̸O̸M̸➼𝄞*',
       goodbye: false,
       goodbyeMessage: '╭━━━𓆗👁️𓆗━━━╮\n┃ 🖤 وداعاً @user 👋\n┃ 💨 اختفى في الظلام\n╰━━━𓆗👁️𓆗━━━╯',
       antiSpam: false,
@@ -72,7 +72,7 @@ module.exports = {
 
       error: '╭━━━𓆗❌𓆗━━━╮\n┃ حدث خطأ ما! ❌\n╰━━━𓆗❌𓆗━━━╯',
 
-      ownerOnly: '╭━━━𓆗👑𓆗━━━╮\n┃ هذا الأمر مخصص\n┃ لـ *𝐇𝐀𝐌𝐙𝐀 𝐋𝐊𝐇𝐀𝐓𝐈𝐁𝐄* فقط!\n╰━━━𓆗👑𓆗━━━╯',
+      ownerOnly: '╭━━━𓆗👑𓆗━━━╮\n┃ هذا الأمر مخصص\n┃ لـ *𝄞☯︎D̷O̷N̷♛V̸E̸N̸O̸M̸➼𝄞* فقط!\n╰━━━𓆗👑𓆗━━━╯',
 
       adminOnly: '╭━━━𓆗🛡️𓆗━━━╮\n┃ هذا الأمر مخصص\n┃ للمشرفين فقط!\n╰━━━𓆗🛡️𓆗━━━╯',
 
